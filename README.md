@@ -46,7 +46,7 @@ Example: client asks for user `id=1`, server returns name and email.
 | ----------------- | ----------------------------------------- |
 | Python 3.12+      | Tested with 3.13                          |
 | pip / venv        | Recommended: create a virtual environment |
-| Network localhost | Server listens on port **50051**          |
+| Network localhost | Server listens on port **50052** (see troubleshooting if 50051 stuck) |
 
 
 ---
@@ -649,7 +649,7 @@ Phase 1 = **unary** (1 request → 1 response). Phase 3 adds **streams** — mul
 | Step | Topic | RPC pattern | Status |
 |------|--------|-------------|--------|
 | 3.1 | Server streaming | 1 request → **many** responses | Done |
-| 3.2 | Client streaming | **many** requests → 1 response | **Next** |
+| 3.2 | Client streaming | **many** requests → 1 response | Done |
 | 3.3 | Bidirectional streaming | **many** ↔ **many** | Pending |
 | 3.4 | Stream error handling | Cancel / deadline mid-stream | Pending |
 
@@ -711,7 +711,7 @@ received user: id: 3 name: "Jim Doe" ...
 
 **Note:** If client `timeout` is shorter than total stream duration (e.g. 0.8s with 3 × 0.5s delays), you get `DEADLINE_EXCEEDED` mid-stream — a preview of Step 3.4.
 
-### Step 3.2 — Client streaming (next)
+### Step 3.2 — Client streaming (done)
 
 **Pattern:** Client sends **many** messages; server returns **one** response at the end.
 
@@ -753,7 +753,36 @@ response = stub.CreateUsers(user_requests())
 print("Created:", response.created_count)
 ```
 
-Generated stub will use `channel.stream_unary` (stream in, one response out).
+Generated stub uses `channel.stream_unary` (stream in, one response out).
+
+Expected output:
+
+```
+--- CreateUsers streaming ---
+created count: 3
+--- CreateUsers streaming done ---
+```
+
+### Step 3.3 — Bidirectional streaming (next)
+
+**Pattern:** Both sides send **many** messages independently.
+
+**1. Add to `user.proto`:**
+
+```protobuf
+message ChatMessage {
+  string user = 1;
+  string text = 2;
+}
+
+rpc Chat(stream ChatMessage) returns (stream ChatMessage);
+```
+
+**2. Server** — `for message in request_iterator: yield reply`
+
+**3. Client** — generator to send + `for reply in stub.Chat(...)` to receive
+
+Stub type: `channel.stream_stream`.
 
 ---
 
@@ -776,8 +805,8 @@ Generated stub will use `channel.stream_unary` (stream in, one response out).
 | 2.6  | Deadlines                               | Done    |
 | 2.7  | Live traffic observation                | Done    |
 | 3.1  | Server streaming RPC                    | Done    |
-| 3.2  | Client streaming RPC                    | Next    |
-| 3.3  | Bidirectional streaming                 | Pending |
+| 3.2  | Client streaming RPC                    | Done    |
+| 3.3  | Bidirectional streaming                 | Next    |
 | 3.4  | Stream error handling                   | Pending |
 
 
@@ -803,7 +832,7 @@ pip install -r requirement.txt
 python -m grpc_tools.protoc -I protos --python_out=generated --grpc_python_out=generated protos/user.proto
 
 # Run
-python server.py   # terminal 1
+python server.py   # terminal 1 — listens on 50052
 python client.py   # terminal 2
 ```
 

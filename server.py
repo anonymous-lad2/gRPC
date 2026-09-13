@@ -1,9 +1,11 @@
-from generated.user_pb2 import User, UserRequest, ListUsersRequest
+from generated.user_pb2 import User, UserRequest, ListUsersRequest, CreateUsersResponse
 from generated.user_pb2_grpc import UserServiceServicer, add_UserServiceServicer_to_server
 
 import grpc
 from concurrent import futures
 import time
+
+PORT = 50052  # 50051 may be held by orphaned sandbox servers; see README troubleshooting
 
 class UserService(UserServiceServicer):
 
@@ -51,18 +53,44 @@ class UserService(UserServiceServicer):
 
         limit = request.page_size or len(users)
         for user in users[:limit]:
-            print(f"Streaming user: {user}")
-            yield user
-            time.sleep(0.5)
+            if context.is_active():
+                print(f"Streaming user: {user}")
+                yield user
+                time.sleep(0.5)
+            else:
+                print("client cancelled")
+                context.set_code(grpc.StatusCode.CANCELLED)
+                context.set_details('Client cancelled')
+                return
 
         context.set_code(grpc.StatusCode.OK)
         context.set_details('Users streamed successfully')
         return
 
+    def CreateUsers(self, request_iterator, context):
+        print("--- CreateUsers stream ---")
+        count = 0
+        for user in request_iterator:
+            print(f"  Creating user: {user.name} ({user.email})")
+            count += 1
+        print(f"--- Created {count} users ---")
+        return CreateUsersResponse(created_count=count)
+
+    def Chat(self, request_iterator, context):
+        print("Streaming chat messages...")
+        for message in request_iterator:
+            print(f"Streaming chat message: {message.user} - {message.text}")
+            yield message
+            time.sleep(0.5)
+        context.set_code(grpc.StatusCode.OK)
+        context.set_details('Chat messages streamed successfully')
+        return
+
     def serve(self):
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         add_UserServiceServicer_to_server(self, server)
-        server.add_insecure_port('[::]:50051')
+        server.add_insecure_port(f'[::]:{PORT}')
+        print(f"Server listening on port {PORT}")
         server.start()
         server.wait_for_termination()
 
