@@ -2,9 +2,14 @@ import grpc
 
 PORT = 50051  # must match server.py
 
-from generated.user_pb2 import UserRequest, ListUsersRequest
+from generated.user_pb2 import UserRequest, ListUsersRequest, ChatMessage
 from generated.user_pb2_grpc import UserServiceStub
 from generated.user_pb2 import User
+
+def chat_messages():
+    yield ChatMessage(user="John Doe", text="Hello, how are you?")
+    yield ChatMessage(user="Jane Doe", text="I'm good, thank you!")
+    yield ChatMessage(user="Jim Doe", text="What are you doing?")
 
 def user_requests():
     yield User(id=1, name="John Doe", email="john.doe@example.com")
@@ -53,6 +58,16 @@ def run():
             response = stub.CreateUsers(user_requests(), metadata=metadata, timeout=10)
             print("created count:", response.created_count)
             print("--- CreateUsers streaming done ---")
+        except grpc.RpcError as e:
+            print("ERROR:", e.code(), e.details())
+
+        # Test 6: chat
+        try:
+            print("--- Chat streaming ---")
+            response = stub.Chat(chat_messages(), metadata=metadata, timeout=10)
+            for message in response:
+                print("received chat message:", message)
+            print("--- Chat streaming done ---")
         except grpc.RpcError as e:
             print("ERROR:", e.code(), e.details())
 

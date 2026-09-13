@@ -70,6 +70,16 @@ class UserService(UserServiceServicer):
         print(f"--- Created {count} users ---")
         return CreateUsersResponse(created_count=count)
 
+    def Chat(self, request_iterator, context):
+        print("Streaming chat messages...")
+        for message in request_iterator:
+            print(f"Streaming chat message: {message.user} - {message.text}")
+            yield message
+            time.sleep(0.5)
+        context.set_code(grpc.StatusCode.OK)
+        context.set_details('Chat messages streamed successfully')
+        return
+
     def serve(self):
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         add_UserServiceServicer_to_server(self, server)
