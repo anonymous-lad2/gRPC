@@ -1,6 +1,6 @@
 import grpc
 
-PORT = 50052  # must match server.py
+PORT = 50053  # must match server.py
 
 from generated.user_pb2 import UserRequest, ListUsersRequest, ChatMessage
 from generated.user_pb2_grpc import UserServiceStub

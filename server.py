@@ -1,11 +1,12 @@
 from generated.user_pb2 import User, UserRequest, ListUsersRequest, CreateUsersResponse
 from generated.user_pb2_grpc import UserServiceServicer, add_UserServiceServicer_to_server
+from interceptors import LoggingInterceptor, ApiKeyInterceptor
 
 import grpc
 from concurrent import futures
 import time
 
-PORT = 50052  # 50051 may be held by orphaned sandbox servers; see README troubleshooting
+PORT = 50053  # 50051 may be held by orphaned sandbox servers; see README troubleshooting
 
 class UserService(UserServiceServicer):
 
@@ -87,7 +88,10 @@ class UserService(UserServiceServicer):
         return
 
     def serve(self):
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+        server = grpc.server(
+            futures.ThreadPoolExecutor(max_workers=10), 
+            interceptors=[LoggingInterceptor(), ApiKeyInterceptor()]
+        )
         add_UserServiceServicer_to_server(self, server)
         server.add_insecure_port(f'[::]:{PORT}')
         print(f"Server listening on port {PORT}")
