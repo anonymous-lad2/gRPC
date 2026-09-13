@@ -1,0 +1,5 @@
+# Python 3.12 — Phase 1 gRPC UserService POC
+# Keep grpcio and grpcio-tools on the same version.
+grpcio==1.83.1
+grpcio-tools==1.83.1
+protobuf==7.35.1
