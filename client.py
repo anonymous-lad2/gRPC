@@ -1,6 +1,6 @@
 import grpc
 
-PORT = 50051  # must match server.py
+PORT = 50052  # must match server.py
 
 from generated.user_pb2 import UserRequest, ListUsersRequest, ChatMessage
 from generated.user_pb2_grpc import UserServiceStub
@@ -52,7 +52,21 @@ def run():
         except grpc.RpcError as e:
             print("ERROR:", e.code(), e.details())
 
-        # Test 5: create users
+        # Test 5: list users with cancellation
+        try:
+            print("--- ListUsers cancellation test ---")
+            stream = stub.ListUsers(ListUsersRequest(page_size=3), metadata=metadata, timeout=10)
+            for i, user in enumerate(stream):
+                print("received user:", user)
+                if i == 0:
+                    stream.cancel()
+                    break
+            print("--- ListUsers cancellation test done ---")
+
+        except grpc.RpcError as e:
+            print("ERROR:", e.code(), e.details())
+
+        # Test 6: create users
         try:
             print("--- CreateUsers streaming ---")
             response = stub.CreateUsers(user_requests(), metadata=metadata, timeout=10)
@@ -61,7 +75,7 @@ def run():
         except grpc.RpcError as e:
             print("ERROR:", e.code(), e.details())
 
-        # Test 6: chat
+        # Test 7: chat
         try:
             print("--- Chat streaming ---")
             response = stub.Chat(chat_messages(), metadata=metadata, timeout=10)

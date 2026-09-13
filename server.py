@@ -5,7 +5,7 @@ import grpc
 from concurrent import futures
 import time
 
-PORT = 50051  # 50051 may be held by orphaned sandbox servers; see README troubleshooting
+PORT = 50052  # 50051 may be held by orphaned sandbox servers; see README troubleshooting
 
 class UserService(UserServiceServicer):
 
@@ -53,9 +53,15 @@ class UserService(UserServiceServicer):
 
         limit = request.page_size or len(users)
         for user in users[:limit]:
-            print(f"Streaming user: {user}")
-            yield user
-            time.sleep(0.5)
+            if context.is_active():
+                print(f"Streaming user: {user}")
+                yield user
+                time.sleep(0.5)
+            else:
+                print("client cancelled")
+                context.set_code(grpc.StatusCode.CANCELLED)
+                context.set_details('Client cancelled')
+                return
 
         context.set_code(grpc.StatusCode.OK)
         context.set_details('Users streamed successfully')
