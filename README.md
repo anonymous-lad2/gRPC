@@ -27,7 +27,7 @@ We are building a minimal **gRPC UserService** in Python:
 
 - **Phase 1 (done):** End-to-end **Unary RPC** — client sends one request, server returns one response.
 - **Phase 2 (done):** Wire-format deep dive (serialization, framing, metadata, errors, deadlines).
-- **Phase 3 (next):** Streaming RPCs (server streaming, client streaming, bidirectional).
+- **Phase 3 (in progress):** Streaming RPCs (server streaming, client streaming, bidirectional).
 
 The service exposes one RPC:
 
@@ -642,18 +642,18 @@ Shows HTTP/2 activity, RPC call lifecycle, and metadata on the wire.
 
 ---
 
-## Phase 3 — Streaming RPCs (next)
+## Phase 3 — Streaming RPCs
 
 Phase 1 = **unary** (1 request → 1 response). Phase 3 adds **streams** — multiple messages in one RPC call.
 
-| Step | Topic | RPC pattern | Example use case |
-|------|--------|-------------|------------------|
-| 3.1 | Server streaming | 1 request → **many** responses | `ListUsers` — stream all users one-by-one |
-| 3.2 | Client streaming | **many** requests → 1 response | `CreateUsers` — upload batch, get summary count |
-| 3.3 | Bidirectional streaming | **many** ↔ **many** | Chat, live sync, real-time feeds |
-| 3.4 | Stream error handling | Cancel / deadline mid-stream | Client stops reading, server detects cancellation |
+| Step | Topic | RPC pattern | Status |
+|------|--------|-------------|--------|
+| 3.1 | Server streaming | 1 request → **many** responses | Done |
+| 3.2 | Client streaming | **many** requests → 1 response | **Next** |
+| 3.3 | Bidirectional streaming | **many** ↔ **many** | Pending |
+| 3.4 | Stream error handling | Cancel / deadline mid-stream | Pending |
 
-### Step 3.1 — Server streaming (start here)
+### Step 3.1 — Server streaming (done)
 
 **1. Extend `protos/user.proto`:**
 
@@ -692,6 +692,69 @@ for user in stub.ListUsers(ListUsersRequest(page_size=3)):
 
 **Key difference from unary:** The server sends multiple frames; the client reads them in a loop until the stream closes.
 
+Generated stub uses `channel.unary_stream` (one request in, stream of responses out).
+
+Current implementation highlights:
+
+- **Server:** `ListUsers` validates `page_size > 0`, then `yield`s each `User` with a 0.5s delay between items (simulates slow DB/page fetch).
+- **Client:** `for user in stub.ListUsers(...)` iterates until the stream closes.
+
+Expected output:
+
+```
+--- ListUsers streaming ---
+received user: id: 1 name: "John Doe" ...
+received user: id: 2 name: "Jane Doe" ...
+received user: id: 3 name: "Jim Doe" ...
+--- ListUsers streaming done ---
+```
+
+**Note:** If client `timeout` is shorter than total stream duration (e.g. 0.8s with 3 × 0.5s delays), you get `DEADLINE_EXCEEDED` mid-stream — a preview of Step 3.4.
+
+### Step 3.2 — Client streaming (next)
+
+**Pattern:** Client sends **many** messages; server returns **one** response at the end.
+
+**1. Extend `protos/user.proto`:**
+
+```protobuf
+message CreateUsersResponse {
+  int32 created_count = 1;
+}
+
+service UserService {
+  rpc GetUser(UserRequest) returns (User);
+  rpc ListUsers(ListUsersRequest) returns (stream User);
+  rpc CreateUsers(stream User) returns (CreateUsersResponse);  // NEW
+}
+```
+
+**2. Recompile** and fix imports in `user_pb2_grpc.py`.
+
+**3. Server** — iterate incoming stream with `for`, then return summary:
+
+```python
+def CreateUsers(self, request_iterator, context):
+    count = 0
+    for user in request_iterator:
+        print(f"Creating user: {user.name}")
+        count += 1
+    return CreateUsersResponse(created_count=count)
+```
+
+**4. Client** — use a **generator** to send multiple messages:
+
+```python
+def user_requests():
+    yield User(id=10, name="New User 1", email="u1@example.com")
+    yield User(id=11, name="New User 2", email="u2@example.com")
+
+response = stub.CreateUsers(user_requests())
+print("Created:", response.created_count)
+```
+
+Generated stub will use `channel.stream_unary` (stream in, one response out).
+
 ---
 
 ## Progress tracker
@@ -712,8 +775,8 @@ for user in stub.ListUsers(ListUsersRequest(page_size=3)):
 | 2.5  | Status codes & errors                   | Done    |
 | 2.6  | Deadlines                               | Done    |
 | 2.7  | Live traffic observation                | Done    |
-| 3.1  | Server streaming RPC                    | Next    |
-| 3.2  | Client streaming RPC                    | Pending |
+| 3.1  | Server streaming RPC                    | Done    |
+| 3.2  | Client streaming RPC                    | Next    |
 | 3.3  | Bidirectional streaming                 | Pending |
 | 3.4  | Stream error handling                   | Pending |
 

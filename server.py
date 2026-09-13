@@ -1,4 +1,4 @@
-from generated.user_pb2 import User, UserRequest
+from generated.user_pb2 import User, UserRequest, ListUsersRequest
 from generated.user_pb2_grpc import UserServiceServicer, add_UserServiceServicer_to_server
 
 import grpc
@@ -33,6 +33,31 @@ class UserService(UserServiceServicer):
         context.set_details('User fetched successfully')
 
         return User(id=request.id, name="John Doe", email="john.doe@example.com")
+
+    
+    def ListUsers(self, request, context):
+        print("Streaming users...")
+        page_size = request.page_size
+        if page_size <= 0:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details('Page size must be greater than 0')
+            return
+
+        users = [
+            User(id=1, name="John Doe", email="john.doe@example.com"),
+            User(id=2, name="Jane Doe", email="jane.doe@example.com"),
+            User(id=3, name="Jim Doe", email="jim.doe@example.com"),
+        ]
+
+        limit = request.page_size or len(users)
+        for user in users[:limit]:
+            print(f"Streaming user: {user}")
+            yield user
+            time.sleep(0.5)
+
+        context.set_code(grpc.StatusCode.OK)
+        context.set_details('Users streamed successfully')
+        return
 
     def serve(self):
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

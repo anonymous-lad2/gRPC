@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from generated.user_pb2 import User, UserRequest
+import generated.user_pb2 as user__pb2
 
 GRPC_GENERATED_VERSION = '1.83.1'
 GRPC_VERSION = grpc.__version__
@@ -36,8 +36,13 @@ class UserServiceStub:
         """
         self.GetUser = channel.unary_unary(
                 '/user.UserService/GetUser',
-                request_serializer=UserRequest.SerializeToString,
-                response_deserializer=User.FromString,
+                request_serializer=user__pb2.UserRequest.SerializeToString,
+                response_deserializer=user__pb2.User.FromString,
+                _registered_method=True)
+        self.ListUsers = channel.unary_stream(
+                '/user.UserService/ListUsers',
+                request_serializer=user__pb2.ListUsersRequest.SerializeToString,
+                response_deserializer=user__pb2.User.FromString,
                 _registered_method=True)
 
 
@@ -50,13 +55,24 @@ class UserServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListUsers(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_UserServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'GetUser': grpc.unary_unary_rpc_method_handler(
                     servicer.GetUser,
-                    request_deserializer=UserRequest.FromString,
-                    response_serializer=User.SerializeToString,
+                    request_deserializer=user__pb2.UserRequest.FromString,
+                    response_serializer=user__pb2.User.SerializeToString,
+            ),
+            'ListUsers': grpc.unary_stream_rpc_method_handler(
+                    servicer.ListUsers,
+                    request_deserializer=user__pb2.ListUsersRequest.FromString,
+                    response_serializer=user__pb2.User.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -84,8 +100,35 @@ class UserService:
             request,
             target,
             '/user.UserService/GetUser',
-            UserRequest.SerializeToString,
-            User.FromString,
+            user__pb2.UserRequest.SerializeToString,
+            user__pb2.User.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListUsers(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/user.UserService/ListUsers',
+            user__pb2.ListUsersRequest.SerializeToString,
+            user__pb2.User.FromString,
             options,
             channel_credentials,
             insecure,
