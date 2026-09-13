@@ -1,10 +1,18 @@
 import grpc
 
+PORT = 50051  # must match server.py
+
 from generated.user_pb2 import UserRequest, ListUsersRequest
 from generated.user_pb2_grpc import UserServiceStub
+from generated.user_pb2 import User
+
+def user_requests():
+    yield User(id=1, name="John Doe", email="john.doe@example.com")
+    yield User(id=2, name="Jane Doe", email="jane.doe@example.com")
+    yield User(id=3, name="Jim Doe", email="jim.doe@example.com")
 
 def run():
-    with grpc.insecure_channel('localhost:50051') as channel:
+    with grpc.insecure_channel(f'localhost:{PORT}') as channel:
         stub = UserServiceStub(channel)
         metadata = (('client-id', 'my-app'), ('x-api-key', '1234567890'))
 
@@ -36,6 +44,15 @@ def run():
             for user in response:
                 print("received user:", user)
             print("--- ListUsers streaming done ---")
+        except grpc.RpcError as e:
+            print("ERROR:", e.code(), e.details())
+
+        # Test 5: create users
+        try:
+            print("--- CreateUsers streaming ---")
+            response = stub.CreateUsers(user_requests(), metadata=metadata, timeout=10)
+            print("created count:", response.created_count)
+            print("--- CreateUsers streaming done ---")
         except grpc.RpcError as e:
             print("ERROR:", e.code(), e.details())
 

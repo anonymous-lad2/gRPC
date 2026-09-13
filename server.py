@@ -1,9 +1,11 @@
-from generated.user_pb2 import User, UserRequest, ListUsersRequest
+from generated.user_pb2 import User, UserRequest, ListUsersRequest, CreateUsersResponse
 from generated.user_pb2_grpc import UserServiceServicer, add_UserServiceServicer_to_server
 
 import grpc
 from concurrent import futures
 import time
+
+PORT = 50051  # 50051 may be held by orphaned sandbox servers; see README troubleshooting
 
 class UserService(UserServiceServicer):
 
@@ -59,10 +61,20 @@ class UserService(UserServiceServicer):
         context.set_details('Users streamed successfully')
         return
 
+    def CreateUsers(self, request_iterator, context):
+        print("--- CreateUsers stream ---")
+        count = 0
+        for user in request_iterator:
+            print(f"  Creating user: {user.name} ({user.email})")
+            count += 1
+        print(f"--- Created {count} users ---")
+        return CreateUsersResponse(created_count=count)
+
     def serve(self):
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         add_UserServiceServicer_to_server(self, server)
-        server.add_insecure_port('[::]:50051')
+        server.add_insecure_port(f'[::]:{PORT}')
+        print(f"Server listening on port {PORT}")
         server.start()
         server.wait_for_termination()
 

@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nuser.proto\x12\x04user\"/\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05\x65mail\x18\x03 \x01(\t\"\x19\n\x0bUserRequest\x12\n\n\x02id\x18\x01 \x01(\x05\"%\n\x10ListUsersRequest\x12\x11\n\tpage_size\x18\x01 \x01(\x05\x32j\n\x0bUserService\x12(\n\x07GetUser\x12\x11.user.UserRequest\x1a\n.user.User\x12\x31\n\tListUsers\x12\x16.user.ListUsersRequest\x1a\n.user.User0\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nuser.proto\x12\x04user\"/\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05\x65mail\x18\x03 \x01(\t\"\x19\n\x0bUserRequest\x12\n\n\x02id\x18\x01 \x01(\x05\"%\n\x10ListUsersRequest\x12\x11\n\tpage_size\x18\x01 \x01(\x05\",\n\x13\x43reateUsersResponse\x12\x15\n\rcreated_count\x18\x01 \x01(\x05\x32\xa2\x01\n\x0bUserService\x12(\n\x07GetUser\x12\x11.user.UserRequest\x1a\n.user.User\x12\x31\n\tListUsers\x12\x16.user.ListUsersRequest\x1a\n.user.User0\x01\x12\x36\n\x0b\x43reateUsers\x12\n.user.User\x1a\x19.user.CreateUsersResponse(\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,6 +37,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_USERREQUEST']._serialized_end=94
   _globals['_LISTUSERSREQUEST']._serialized_start=96
   _globals['_LISTUSERSREQUEST']._serialized_end=133
-  _globals['_USERSERVICE']._serialized_start=135
-  _globals['_USERSERVICE']._serialized_end=241
+  _globals['_CREATEUSERSRESPONSE']._serialized_start=135
+  _globals['_CREATEUSERSRESPONSE']._serialized_end=179
+  _globals['_USERSERVICE']._serialized_start=182
+  _globals['_USERSERVICE']._serialized_end=344
 # @@protoc_insertion_point(module_scope)

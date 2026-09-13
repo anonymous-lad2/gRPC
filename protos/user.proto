@@ -16,7 +16,12 @@ message ListUsersRequest {
   int32 page_size = 1;
 }
 
+message CreateUsersResponse {
+  int32 created_count = 1;
+}
+
 service UserService {
   rpc GetUser(UserRequest) returns (User);
   rpc ListUsers(ListUsersRequest) returns (stream User); 
+  rpc CreateUsers(stream User) returns (CreateUsersResponse);
 }
